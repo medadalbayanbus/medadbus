@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>كشف مواصلات الطلاب</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+ body{font-family:Tahoma,Arial;background:#f2f5f9;margin:0;padding:16px;color:#1f2937}
+ .card{background:#fff;border-radius:10px;padding:18px;max-width:1100px;margin:0 auto 16px;box-shadow:0 1px 4px #0002}
+ h1,h2{margin-top:0}
+ input,select,button{font-size:15px;padding:8px;margin:4px 0;border:1px solid #cbd5e1;border-radius:6px}
+ button{background:#2563eb;color:#fff;border:none;cursor:pointer;padding:8px 14px}
+ button.secondary{background:#64748b}
+ button.danger{background:#dc2626}
+ table{border-collapse:collapse;width:100%;font-size:13px}
+ th,td{border:1px solid #94a3b8;padding:5px;text-align:center;overflow-wrap:break-word}
+ th{background:#1e3a8a;color:#fff;font-weight:600}
+ #sheetWrap{overflow-x:auto}
+ #attTable{border:2px solid #1e3a8a;min-width:1300px}
+ #attTable tbody tr:nth-child(even) td{background:#f1f5f9}
+ #attTable tbody tr:hover td{background:#e0e7ff}
+ #attTable select{width:100%;font-size:13px;padding:4px;border:none;background:transparent;font-weight:600}
+ .print-only{display:none}
+ @media print{
+  #attTable select{display:none}
+  .print-only{display:inline-block;font-size:11px;font-weight:bold}
+  .print-only.mark-yes{color:#16a34a}
+  .print-only.mark-no{color:#dc2626}
+ }
+ .hidden{display:none!important}
+ .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+ .top{display:flex;justify-content:space-between;align-items:center}
+ .sig{margin-top:26px;padding-top:14px;border-top:1px solid #cbd5e1;display:flex;justify-content:space-between;gap:24px}
+ .sigbox{flex:1;text-align:center;font-size:13.5px}
+ .sigbox .role{font-weight:bold;color:#1e3a8a;font-size:14px}
+ .sigbox .nm{margin:3px 0 4px;font-weight:bold}
+ .sigbox .cap{font-size:12px;color:#64748b}
+ .sigarea{height:66px;display:flex;align-items:flex-end;justify-content:center;border-bottom:1px solid #94a3b8;margin:4px 20px 2px}
+ .boxhead{display:flex;justify-content:space-between;align-items:center;cursor:pointer;user-select:none}
+ .boxhead h2{margin:0}
+ .boxhead .chev{font-size:16px;color:#1e3a8a;background:#e0e7ff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+ .boxbody{margin-top:12px}
+ .sigimg{height:60px;max-width:100%;object-fit:contain}
+ .moveBox{background:#fef9c3;border:1px solid #eab308;border-radius:8px;padding:10px;margin-bottom:12px}
+ .pad{border:2px dashed #1e3a8a;border-radius:8px;background:#fff;width:100%;max-width:500px;touch-action:none;display:block;margin:6px 0}
+ #printDate{display:none;text-align:center;font-size:10.5px;color:#64748b;margin-top:8px}
+ .letterhead{display:flex;justify-content:space-between;align-items:center;border-bottom:3px double #1e3a8a;padding-bottom:10px;margin-bottom:10px;gap:14px}
+ .letterhead>div{flex:1}
+ .letterhead .gov{font-size:12.5px;line-height:1.6;text-align:center;color:#1e3a8a}
+ .letterhead .school{font-size:14px;font-weight:bold;line-height:1.6;text-align:center;flex:1;color:#1e3a8a}
+ #logoImg{width:82px;height:82px;object-fit:contain;border-radius:50%;border:2px solid #1e3a8a;flex:0 0 auto}
+ .sheetTitle{text-align:center;font-weight:bold;font-size:19px;letter-spacing:.5px;margin:0 0 10px;background:#1e3a8a;color:#fff;padding:8px 0;border-radius:6px}
+ .meta{display:flex;justify-content:space-around;font-size:13px;margin-bottom:14px;flex-wrap:wrap;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:8px 14px;gap:6px}
+ .meta b{color:#1e3a8a}
+ @page{ size: landscape; margin: 6mm; }
+ @media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  button,.no-print{display:none!important}
+  .card{box-shadow:none;border:none;max-width:none;padding:0}
+  body{padding:0;font-size:12px}
+  #sheetWrap{overflow:visible}
+  #attTable{min-width:0;table-layout:fixed}
+  #attTable th:nth-child(1),#attTable td:nth-child(1){width:3%}
+  #attTable th:nth-child(2),#attTable td:nth-child(2){width:15%}
+  #attTable th:nth-child(3),#attTable td:nth-child(3){width:9%}
+  #attTable th:nth-child(4),#attTable td:nth-child(4){width:8%}
+  #attTable th:nth-child(n+5):not(:last-child),#attTable td:nth-child(n+5):not(:last-child){width:6.5%}
+  .letterhead{padding-bottom:6px;margin-bottom:6px;gap:10px}
+  .letterhead .gov,.letterhead .school{font-size:11.5px;line-height:1.3}
+  #logoImg{width:64px;height:64px}
+  .sheetTitle{font-size:16.5px;padding:6px 0;margin-bottom:6px}
+  .meta{font-size:11.5px;padding:6px 12px;margin-bottom:8px;gap:4px}
+  #attTable{font-size:10.5px;page-break-inside:avoid}
+  #attTable th,#attTable td{padding:2.5px 3px;line-height:1.2}
+  .sig{margin-top:12px;padding-top:8px;font-size:11.5px;page-break-inside:avoid}
+  .sigarea{height:46px}
+  .sigimg{height:42px}
+  .sigbox{font-size:11.5px}
+  .card{page-break-inside:avoid}
+  #printDate{display:block}
+ }
+</style>
+</head>
+<body>
+
+<div class="card" id="loginCard">
+ <h2>تسجيل الدخول</h2>
+ <div class="row">
+  <input id="loginEmail" placeholder="البريد الإلكتروني" style="flex:1">
+  <input id="loginPass" type="password" placeholder="كلمة المرور" style="flex:1">
+  <button onclick="doLogin()">دخول</button>
+ </div>
+ <p id="loginMsg" style="color:#dc2626"></p>
+ <p style="font-size:12px;color:#64748b">أول حساب يسجّل دخول لأول مرة (بعد التسجيل من صفحة Supabase) يصبح تلقائياً حساب المشرف العام (الأدمن).</p>
+</div>
+
+<div id="bulkArea" style="display:none;padding:8px"></div>
+<div class="hidden" id="appCard">
+ <div class="card top no-print">
+  <div>مرحباً <b id="userName"></b> — <span id="userRole"></span> <span id="editingWho" style="font-weight:normal;font-size:13px;color:#64748b"></span></div>
+  <button class="secondary no-print" onclick="logout()">خروج</button>
+ </div>
+
+ <div class="card no-print" id="adminPanel">
+  <h2>إدارة المشرفين</h2>
+  <div class="row">
+   <input id="supName" placeholder="اسم المشرف">
+   <input id="supEmail" placeholder="بريد المشرف">
+   <input id="supPass" placeholder="كلمة مرور مؤقتة">
+   <button onclick="addSupervisor()">إضافة مشرف</button>
+  </div>
+  <p id="adminMsg" style="color:#dc2626"></p>
+  <div class="row">
+   <label>عرض كشف مشرف: </label>
+   <select id="supSelect" onchange="loadSheetFor(this.value)"></select>
+   <button class="danger" onclick="deleteSupervisor()">حذف المشرف المحدد</button>
+  </div>
+  <div class="row">
+   <label>مشرفون سابقون / محذوفون: </label>
+   <select id="disabledSelect"></select>
+   <button class="secondary" onclick="viewDisabled()">عرض كشفه</button>
+   <button class="secondary" onclick="reactivateSupervisor()">إعادة تفعيل المحدد</button>
+  </div>
+  <div class="boxhead" style="margin-top:12px" onclick="toggleBox('replaceBody',this)"><b>🔄 استبدال مشرف بمشرف جديد على نفس الباص</b><span class="chev">▼</span></div>
+  <div id="replaceBody" class="boxbody hidden">
+   <div class="row"><label>المشرف الحالي (اللي هيتغير):</label><select id="repOld"></select></div>
+   <div class="row">
+    <input id="repName" placeholder="اسم المشرف الجديد">
+    <input id="repEmail" placeholder="بريد المشرف الجديد">
+    <input id="repPass" placeholder="كلمة مرور مؤقتة">
+    <label>يبدأ من تاريخ: <input id="repDate" type="date"></label>
+    <button onclick="replaceSupervisor()">تعيين المشرف الجديد</button>
+   </div>
+   <p style="font-size:12px;color:#64748b;margin:4px 0">طلاب الباص وبياناته (رقم الباص والسائق) بينتقلوا للمشرف الجديد من التاريخ ده. الكشوف القديمة تفضل بإسم وتوقيع المشرف القديم (تلاقيها في "مشرفون سابقون"). يفضّل تختار يوم أحد بداية أسبوع.</p>
+   <p id="repMsg" style="color:#dc2626;font-size:13px"></p>
+  </div>
+  <div class="boxhead" style="margin-top:12px" onclick="toggleBox('termBody',this)"><b>📅 الفصول الدراسية والأرشيف</b><span class="chev">▼</span></div>
+  <div id="termBody" class="boxbody hidden">
+   <p style="margin:0 0 6px">الفصل المفتوح حالياً: <b id="curTermLabel"></b></p>
+   <div class="row"><label>آخر يوم في الفصل الحالي: <input type="date" id="termEnd"></label></div>
+   <div class="row">
+    <select id="newKind" onchange="fillTermDefaults()"><option value="sem">فصل جديد (نفس العام)</option><option value="year">عام دراسي جديد</option></select>
+    <input id="newYear" placeholder="العام (مثال ١٤٤٨هـ)" style="width:150px">
+    <input id="newSem" placeholder="الفصل (مثال الثاني)" style="width:150px">
+    <label>يبدأ من (يوم أحد): <input type="date" id="newStart"></label>
+   </div>
+   <label style="display:block;margin:6px 0"><input type="checkbox" id="carryStudents"> ترحيل نفس الطلاب للفصل الجديد (لو مش مفعّلة يبدأ الفصل فاضي وتضيف طلاب من جديد)</label>
+   <button class="danger" onclick="closeTerm()">إغلاق الفصل الحالي وفتح الجديد</button>
+   <p style="font-size:12px;color:#64748b">الفصل المغلق بيتحفظ في الأرشيف بكل كشوفه، وتقدر ترجعله في أي وقت من قائمة "الفصل" اللي فوق الكشف.</p>
+   <p id="termMsg" style="color:#dc2626;font-size:13px"></p>
+  </div>
+  <div class="boxhead" style="margin-top:12px" onclick="toggleBox('bulkBody',this)"><b>📤 تصدير مجمّع (أسابيع / مشرفين)</b><span class="chev">▼</span></div>
+  <div id="bulkBody" class="boxbody hidden">
+   <div class="row"><label>المشرف:</label><select id="exSup"></select></div>
+   <div class="row">
+    <label>من أسبوع: <input id="exFrom" type="number" min="1" max="40" value="1" style="width:70px"></label>
+    <label>إلى أسبوع: <input id="exTo" type="number" min="1" max="40" value="1" style="width:70px"></label>
+   </div>
+   <label style="display:block;margin:6px 0"><input type="checkbox" id="exFormer"> تضمين المشرفين السابقين (للفصول المؤرشفة)</label>
+   <div class="row">
+    <button onclick="bulkExport('print')">طباعة / PDF</button>
+    <button class="secondary" onclick="bulkExport('word')">تصدير Word</button>
+    <button class="secondary" onclick="bulkExport('excel')">تصدير Excel</button>
+   </div>
+   <p style="font-size:12px;color:#64748b;margin:4px 0">الأسابيع حسب الفصل المختار في قائمة "الفصل" فوق الكشف. كل مشرف في كل أسبوع في صفحة مستقلة، والمشرف اللي مالوش طلاب في الأسبوع بيتخطّى.</p>
+   <p id="bulkMsg" style="color:#dc2626;font-size:13px"></p>
+  </div>
+ </div>
+
+ <div class="card no-print" id="studentPanel">
+  <h2>إضافة طالب</h2>
+  <div class="row">
+   <input id="stName" placeholder="اسم الطالب">
+   <select id="stStage">
+    <option>الأول ابتدائي</option><option>الثاني ابتدائي</option><option>الثالث ابتدائي</option>
+    <option>الرابع ابتدائي</option><option>الخامس ابتدائي</option><option>السادس ابتدائي</option>
+    <option>الأول متوسط</option><option>الثاني متوسط</option><option>الثالث متوسط</option>
+   </select>
+   <select id="stSub"><option value="round">ذهاب وعودة</option><option value="one">ذهاب فقط</option><option value="return_only">عودة فقط</option></select>
+   <label>يبدأ من: <input type="date" id="stSince"></label>
+   <button id="studentSaveBtn" onclick="saveStudent()">إضافة</button>
+   <button id="cancelEditBtn" class="secondary hidden" onclick="cancelEditStudent()">إلغاء</button>
+  </div>
+  <p id="studentMsg" style="color:#dc2626;font-size:13px"></p>
+ </div>
+
+ <div class="card no-print" id="headerSettings">
+  <div class="boxhead" onclick="toggleBox('headerBody',this)"><h2>بيانات ترويسة الكشف</h2><span class="chev">▼</span></div>
+  <div id="headerBody" class="boxbody hidden">
+  <div class="row" id="adminBranding">
+   <input id="hSchool" placeholder="اسم المدرسة">
+   <label>شعار: <input type="file" id="hLogo" accept="image/*" onchange="uploadLogo(event)"></label>
+  </div>
+  <div class="row" id="semesterSettings" style="display:none">
+   <span>الفصل الأول: من أسبوع <input id="s1From" type="number" min="1" max="30" style="width:60px"> إلى <input id="s1To" type="number" min="1" max="30" style="width:60px"></span>
+   <span>الفصل الثاني: من أسبوع <input id="s2From" type="number" min="1" max="30" style="width:60px"> إلى <input id="s2To" type="number" min="1" max="30" style="width:60px"></span>
+  </div>
+  <div class="row">
+   <input id="hSupName" placeholder="اسم المشرف">
+   <input id="hDriver" placeholder="اسم السائق">
+   <input id="hBus" placeholder="رقم الباص">
+  </div>
+  <div class="row">
+   <button onclick="saveAllHeader()">حفظ بيانات الترويسة</button>
+   <span id="headerSaveMsg" style="color:#16a34a;font-size:13px"></span>
+  </div>
+  </div>
+ </div>
+
+ <div class="card no-print" id="pwPanel">
+  <div class="boxhead" onclick="toggleBox('pwBody',this)"><h2>🔑 تغيير كلمة المرور</h2><span class="chev">▼</span></div>
+  <div id="pwBody" class="boxbody hidden">
+   <p style="margin:0 0 4px"><b>كلمة مرور حسابك</b></p>
+   <div class="row">
+    <input id="pwNew" type="password" placeholder="كلمة المرور الجديدة">
+    <input id="pwNew2" type="password" placeholder="أعد كتابتها">
+    <button onclick="changeMyPassword()">حفظ</button>
+   </div>
+   <p id="pwMsg" style="font-size:13px;color:#dc2626"></p>
+   <div id="pwAdminArea" style="margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0">
+    <p style="margin:0 0 4px"><b>إعادة تعيين كلمة مرور مشرف</b> (للأدمن فقط)</p>
+    <div class="row">
+     <select id="pwSup"></select>
+     <input id="pwSupNew" placeholder="كلمة المرور الجديدة">
+     <button class="danger" onclick="resetSupPassword()">تعيين</button>
+    </div>
+    <p id="pwSupMsg" style="font-size:13px;color:#dc2626"></p>
+   </div>
+  </div>
+ </div>
+
+ <div class="card no-print" id="sigPanel">
+  <div class="boxhead" onclick="toggleBox('sigBody',this)"><h2>✍️ التوقيع الإلكتروني</h2><span class="chev">▼</span></div>
+  <div id="sigBody" class="boxbody hidden">
+   <div id="supSigArea">
+    <p style="margin:0 0 4px"><b>توقيعك كمشرف باص</b> — ارسم توقيعك بإصبعك داخل الإطار:</p>
+    <canvas id="padSup" class="pad" width="500" height="200"></canvas>
+    <div class="row">
+     <button onclick="savePad('sup')">حفظ التوقيع</button>
+     <button class="secondary" onclick="clearPad('sup')">مسح الرسم</button>
+     <button class="danger" onclick="removeSig('sup')">حذف التوقيع المحفوظ</button>
+     <span id="sigSupMsg" style="font-size:13px"></span>
+    </div>
+   </div>
+   <div id="adminSigArea">
+    <p style="margin:0 0 4px"><b>توقيع مشرف البنين (جمال محمد زين)</b> — ارسم التوقيع داخل الإطار:</p>
+    <canvas id="padAdmin" class="pad" width="500" height="200"></canvas>
+    <div class="row">
+     <button onclick="savePad('admin')">حفظ التوقيع</button>
+     <button class="secondary" onclick="clearPad('admin')">مسح الرسم</button>
+     <button class="danger" onclick="removeSig('admin')">حذف التوقيع المحفوظ</button>
+     <span id="sigAdminMsg" style="font-size:13px"></span>
+    </div>
+   </div>
+  </div>
+ </div>
+
+ <div class="card">
+  <div class="letterhead">
+   <div class="gov"><b>المملكة العربية السعودية</b><br>وزارة التعليم<br>مكتب التعليم الخاص<br>إدارة الخدمات المساندة</div>
+   <img id="logoImg" src="" alt="شعار">
+   <div class="school"><b id="dSchool">اسم المدرسة</b></div>
+  </div>
+  <div class="sheetTitle">نموذج رصد بيانات النقل المدرسي</div>
+  <div class="meta">
+   <span>الفصل الدراسي <b id="dSemester">الأول</b> <b id="dYear"></b></span>
+   <span>تحضير الأسبوع رقم: <b id="dWeek">-</b></span>
+   <span>باص رقم: <b id="dBus">-</b></span>
+   <span>اسم السائق: <b id="dDriver">-</b></span>
+   <span>اسم المشرف: <b id="dSupervisor">-</b></span>
+  </div>
+  <div class="top no-print">
+   <h2>كشف الأسبوع</h2>
+   <div class="row">
+    <label>الفصل:</label><select id="termSelect" onchange="changeTerm()"></select><span id="termNote" style="color:#b45309;font-size:13px"></span>
+    <label>اختر الأسبوع:</label>
+    <select id="weekNum" onchange="changeWeek()"></select>
+    <button onclick="printSheet()">طباعة / PDF</button>
+    <button class="secondary" onclick="exportWord()">تصدير Word</button>
+    <button class="secondary" onclick="exportExcel()">تصدير Excel</button>
+   </div>
+  </div>
+  <div id="movePanel" class="moveBox no-print hidden">
+   <b>نقل الطالب: <span id="moveName"></span></b>
+   <div class="row">
+    <label>إلى المشرف/الباص:</label><select id="moveTo"></select>
+    <label>من تاريخ: <input type="date" id="moveDate"></label>
+    <button onclick="doMove()">تأكيد النقل</button>
+    <button class="secondary" onclick="cancelMove()">إلغاء</button>
+   </div>
+   <p style="font-size:12px;color:#64748b;margin:4px 0 0">الطالب يفضل ظاهر في كشوف الباص القديم قبل تاريخ النقل، ويظهر في الباص الجديد من التاريخ ده.</p>
+   <p id="moveMsg" style="color:#dc2626;font-size:13px;margin:4px 0 0"></p>
+  </div>
+  <div id="sheetWrap"></div>
+  <div class="sig">
+   <div class="sigbox">
+    <div class="role">مشرف الباص</div>
+    <div class="nm" id="sigSupName">____________</div>
+    <div class="sigarea"><img id="sigSupImg" class="sigimg hidden" alt="توقيع المشرف"></div>
+    <div class="cap">التوقيع</div>
+   </div>
+   <div class="sigbox">
+    <div class="role">اعتماد مشرف البنين</div>
+    <div class="nm">جمال محمد زين</div>
+    <div class="sigarea"><img id="sigAdminImg" class="sigimg hidden" alt="توقيع مشرف البنين"></div>
+    <div class="cap">التوقيع</div>
+   </div>
+  </div>
+  <div id="printDate"></div>
+ </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://veycvolobtuferydyquk.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZleWN2b2xvYnR1ZmVyeWR5cXVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2NzYwNzQsImV4cCI6MjEwNTI1MjA3NH0.Ac0CbitnBIglZS5Okx4frNyeK9l8hzI_M9edvB31Yeo";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let me = null, myRole = 'supervisor', students = [], attMap = {}, viewingSupervisorId = null, editStudentId = null;
+let supSigData = '', adminSigData = '';
+let ranges = {}, supList = [], disabledList = [], moveStudentId = null;
+const DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+
+let terms = [], curTerm = { year_label:'١٤٤٨هـ', semester:'الأول', start_date:'2026-08-23', status:'open' };
+function populateWeeks(){
+  const sel = document.getElementById('weekNum');
+  const st = new Date(curTerm.start_date);
+  const end = curTerm.end_date ? new Date(curTerm.end_date) : null;
+  const total = end ? Math.ceil(((end - st) / 86400000 + 1) / 7) : 30;
+  const n = Math.max(1, Math.min(40, total));
+  let h = '';
+  for(let i=1;i<=n;i++) h += `<option value="${i}">الأسبوع ${i}</option>`;
+  sel.innerHTML = h;
+  let current = 1;
+  if(curTerm.status !== 'closed'){
+    const diffDays = Math.floor((new Date() - st) / 86400000);
+    current = Math.min(n, Math.max(1, Math.floor(diffDays/7)+1));
+  }
+  sel.value = current;
+}
+function printSheet(){
+  const now = new Date();
+  const d = now.toLocaleDateString('ar-SA-u-ca-gregory');
+  const t = now.toLocaleTimeString('ar-SA', { hour:'2-digit', minute:'2-digit' });
+  document.getElementById('printDate').textContent = 'تاريخ الطباعة: ' + d + ' - ' + t;
+  window.print();
+}
+function changeWeek(){
+  document.getElementById('dWeek').textContent = document.getElementById('weekNum').value;
+  updateSemesterLabel();
+  loadAttendance().then(renderSheet);
+}
+async function doLogin(){
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if(error){ document.getElementById('loginMsg').textContent = error.message; return; }
+  await afterLogin(data.user);
+}
+async function afterLogin(user){
+  me = user;
+  let { data: prof } = await sb.from('profiles').select('*').eq('id', user.id).single();
+  if(!prof){
+    const { count } = await sb.from('profiles').select('*', {count:'exact', head:true});
+    const role = (count === 0) ? 'admin' : 'supervisor';
+    const name = user.email.split('@')[0];
+    await sb.from('profiles').insert({ id: user.id, full_name: name, role });
+    prof = { id:user.id, full_name:name, role };
+  }
+  if(prof.role === 'disabled'){
+    await sb.auth.signOut();
+    document.getElementById('loginMsg').textContent = 'هذا الحساب تم إلغاؤه من قبل الإدارة';
+    return;
+  }
+  myRole = prof.role; viewingSupervisorId = user.id;
+  document.getElementById('userName').textContent = prof.full_name;
+  document.getElementById('userRole').textContent = myRole==='admin' ? 'مدير النظام' : 'مشرف باص';
+  document.getElementById('loginCard').classList.add('hidden');
+  document.getElementById('appCard').classList.remove('hidden');
+  document.getElementById('adminPanel').classList.toggle('hidden', myRole!=='admin');
+  document.getElementById('adminBranding').classList.toggle('hidden', myRole!=='admin');
+  document.getElementById('semesterSettings').classList.toggle('hidden', myRole!=='admin');
+  document.getElementById('adminSigArea').classList.toggle('hidden', myRole!=='admin');
+  document.getElementById('supSigArea').classList.toggle('hidden', myRole==='admin');
+  document.getElementById('repDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('stSince').value = new Date().toISOString().slice(0,10);
+  document.getElementById('pwAdminArea').classList.toggle('hidden', myRole!=='admin');
+  initPad('padSup'); initPad('padAdmin');
+  if(myRole==='admin'){ await loadSupervisorList(); }
+  await loadTerms();
+  populateWeeks();
+  document.getElementById('dWeek').textContent = document.getElementById('weekNum').value;
+  await loadSettings();
+  await loadSheetFor(viewingSupervisorId);
+}
+async function logout(){ await sb.auth.signOut(); location.reload(); }
+
+/* ===== التوقيع الإلكتروني ===== */
+function initPad(id){
+  const c = document.getElementById(id);
+  if(c._ready) return; c._ready = true;
+  const ctx = c.getContext('2d');
+  ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111827';
+  let drawing = false;
+  const pos = e => {
+    const r = c.getBoundingClientRect();
+    return { x:(e.clientX - r.left) * c.width / r.width, y:(e.clientY - r.top) * c.height / r.height };
+  };
+  c.addEventListener('pointerdown', e => {
+    drawing = true; c._dirty = true; c.setPointerCapture(e.pointerId);
+    const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x+0.1, p.y+0.1); ctx.stroke();
+    e.preventDefault();
+  });
+  c.addEventListener('pointermove', e => {
+    if(!drawing) return;
+    const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev => c.addEventListener(ev, () => { drawing = false; }));
+}
+function clearPad(which){
+  const c = document.getElementById(which==='sup' ? 'padSup' : 'padAdmin');
+  c.getContext('2d').clearRect(0,0,c.width,c.height);
+  c._dirty = false;
+}
+function padMsg(which, text, ok){
+  const el = document.getElementById(which==='sup' ? 'sigSupMsg' : 'sigAdminMsg');
+  el.style.color = ok ? '#16a34a' : '#dc2626';
+  el.textContent = text;
+  if(ok) setTimeout(()=> el.textContent = '', 2500);
+}
+function trimmedPad(c){
+  // قص المساحة الفاضية حوالين الرسم ويرجع PNG شفاف
+  const ctx = c.getContext('2d');
+  const d = ctx.getImageData(0,0,c.width,c.height).data;
+  let minX=c.width, minY=c.height, maxX=0, maxY=0, found=false;
+  for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++){
+    if(d[(y*c.width+x)*4+3] > 10){ found=true; if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; }
+  }
+  if(!found) return '';
+  const pad = 6;
+  minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad); maxX=Math.min(c.width,maxX+pad); maxY=Math.min(c.height,maxY+pad);
+  const w = maxX-minX, h = maxY-minY;
+  const t = document.createElement('canvas'); t.width=w; t.height=h;
+  t.getContext('2d').drawImage(c, minX, minY, w, h, 0, 0, w, h);
+  return t.toDataURL('image/png');
+}
+async function savePad(which){
+  const c = document.getElementById(which==='sup' ? 'padSup' : 'padAdmin');
+  const data = trimmedPad(c);
+  if(!data){ padMsg(which, 'ارسم التوقيع أولاً', false); return; }
+  await storeSig(which, data);
+}
+async function removeSig(which){
+  if(!confirm('حذف التوقيع المحفوظ؟')) return;
+  await storeSig(which, '');
+  clearPad(which);
+}
+async function storeSig(which, data){
+  if(which==='sup'){
+    const canEdit = (viewingSupervisorId === me.id) && myRole !== 'admin';
+    if(!canEdit){ padMsg(which, 'غير مسموح', false); return; }
+    const { error } = await sb.from('profiles').update({ signature: data || null }).eq('id', viewingSupervisorId);
+    if(error){ padMsg(which, 'تعذر الحفظ: '+error.message, false); return; }
+    supSigData = data;
+  } else {
+    if(myRole !== 'admin'){ padMsg(which, 'للأدمن فقط', false); return; }
+    const { error } = await sb.from('settings').upsert({ id:1, admin_signature: data || null }, { onConflict:'id' });
+    if(error){ padMsg(which, 'تعذر الحفظ: '+error.message, false); return; }
+    adminSigData = data;
+  }
+  showSignatures();
+  padMsg(which, data ? 'تم حفظ التوقيع ✓' : 'تم حذف التوقيع ✓', true);
+  if(data) clearPad(which);
+}
+function showSignatures(){
+  const set = (imgId, data) => {
+    const img = document.getElementById(imgId);
+    if(data){ img.src = data; img.classList.remove('hidden'); }
+    else { img.removeAttribute('src'); img.classList.add('hidden'); }
+  };
+  set('sigSupImg', supSigData);
+  set('sigAdminImg', adminSigData);
+  const n = document.getElementById('dSupervisor').textContent;
+  document.getElementById('sigSupName').textContent = (n && n!=='-') ? n : '____________';
+}
+
+async function addSupervisor(){
+  const name=document.getElementById('supName').value.trim();
+  const email=document.getElementById('supEmail').value.trim();
+  const pass=document.getElementById('supPass').value;
+  if(!name||!email||!pass) return;
+  const tmp = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); // separate client so admin session is untouched
+  const { data, error } = await tmp.auth.signUp({ email, password: pass });
+  if(error){
+    if(error.message && error.message.toLowerCase().includes('already registered')){
+      document.getElementById('adminMsg').textContent = 'هذا البريد مسجل مسبقاً في النظام. لو كان لمشرف محذوف سابقاً، اختره من قائمة "مشرفون محذوفون" تحت واضغط "إعادة تفعيل المحدد" بدل إضافته من جديد.';
+      await loadDisabledSupervisors();
+    } else {
+      document.getElementById('adminMsg').textContent = error.message;
+    }
+    return;
+  }
+  const { error: perr } = await sb.from('profiles').insert({ id: data.user.id, full_name: name, role:'supervisor' });
+  if(perr){ document.getElementById('adminMsg').textContent = 'تم إنشاء حساب الدخول لكن تعذر حفظ بياناته: '+perr.message; return; }
+  document.getElementById('adminMsg').textContent = 'تمت إضافة المشرف: '+name;
+  document.getElementById('supName').value=''; document.getElementById('supEmail').value=''; document.getElementById('supPass').value='';
+  loadSupervisorList();
+}
+async function loadSupervisorList(){
+  const { data } = await sb.from('profiles').select('*').eq('role','supervisor');
+  supList = data || [];
+  document.getElementById('exSup').innerHTML = '<option value="">كل المشرفين</option>' + supList.map(s=>`<option value="${s.id}">${s.full_name}</option>`).join('');
+  document.getElementById('pwSup').innerHTML = '<option value="">-- اختر مشرف --</option>' + supList.map(s=>`<option value="${s.id}">${s.full_name}</option>`).join('');
+  const sel = document.getElementById('supSelect');
+  sel.innerHTML = '<option value="">-- اختر مشرف --</option>' + supList.map(s=>`<option value="${s.id}">${s.full_name}</option>`).join('');
+  document.getElementById('repOld').innerHTML = '<option value="">-- اختر --</option>' + supList.map(s=>`<option value="${s.id}">${s.full_name}${s.bus_no?' — باص '+s.bus_no:''}</option>`).join('');
+  await loadDisabledSupervisors();
+}
+async function loadDisabledSupervisors(){
+  const { data } = await sb.from('profiles').select('*').eq('role','disabled');
+  disabledList = data || [];
+  const sel = document.getElementById('disabledSelect');
+  sel.innerHTML = '<option value="">-- لا يوجد --</option>' + (data||[]).map(s=>`<option value="${s.id}">${s.full_name}</option>`).join('');
+}
+async function reactivateSupervisor(){
+  const id = document.getElementById('disabledSelect').value;
+  if(!id){ alert('اختر مشرفاً من القائمة أولاً'); return; }
+  const { error } = await sb.from('profiles').update({ role:'supervisor' }).eq('id', id);
+  if(error){ document.getElementById('adminMsg').textContent = 'تعذرت إعادة التفعيل: '+error.message; return; }
+  document.getElementById('adminMsg').textContent = 'تمت إعادة تفعيل المشرف بنجاح، يقدر يدخل بنفس بريده وكلمة مروره القديمة.';
+  await loadSupervisorList();
+}
+async function deleteSupervisor(){
+  const id = document.getElementById('supSelect').value;
+  if(!id){ alert('اختر مشرف أولاً من القائمة'); return; }
+  if(id === me.id){ alert('لا يمكنك حذف حسابك الخاص'); return; }
+  const opt = document.querySelector(`#supSelect option[value="${id}"]`);
+  const supName = opt ? opt.textContent : '';
+  if(!confirm(`تأكيد حذف المشرف "${supName}" وكل بياناته (الطلاب والحضور)؟ لا يمكن التراجع عن هذا.`)) return;
+  const { data: sts } = await sb.from('students').select('id').eq('supervisor_id', id);
+  const ids = (sts||[]).map(s=>s.id);
+  if(ids.length){
+    const { error: e1 } = await sb.from('attendance').delete().in('student_id', ids);
+    if(e1){ document.getElementById('adminMsg').textContent = 'تعذر حذف بيانات الحضور: '+e1.message; return; }
+    const { error: e2 } = await sb.from('students').delete().eq('supervisor_id', id);
+    if(e2){ document.getElementById('adminMsg').textContent = 'تعذر حذف الطلاب: '+e2.message; return; }
+  }
+  const { error: e3 } = await sb.from('profiles').update({ role:'disabled' }).eq('id', id);
+  if(e3){ document.getElementById('adminMsg').textContent = 'تعذر إلغاء تفعيل المشرف: '+e3.message; return; }
+  document.getElementById('adminMsg').textContent = 'تم حذف المشرف "'+supName+'" وكل بياناته';
+  await loadSupervisorList();
+  await loadSheetFor(me.id);
+}
+async function loadSheetFor(id){
+  if(!id) return;
+  viewingSupervisorId = id;
+  document.getElementById('studentPanel').classList.toggle('hidden', myRole==='admin');
+  if(myRole==='admin'){
+    const opt = document.querySelector(`#supSelect option[value="${id}"]`);
+    document.getElementById('editingWho').textContent = (id===me.id) ? '' : '(بصفة مشرف: '+supLabel(id)+')';
+  }
+  const canEdit = (id === me.id) || (myRole === 'admin');
+  document.getElementById('supSigArea').classList.toggle('hidden', !(id === me.id && myRole !== 'admin'));
+  clearPad('sup');
+  const { data: vprof } = await sb.from('profiles').select('full_name,bus_no,driver_name,signature').eq('id', id).single();
+  ['hBus','hDriver','hSupName'].forEach(el=> document.getElementById(el).disabled = !canEdit);
+  document.getElementById('hBus').value = vprof?.bus_no || '';
+  document.getElementById('hDriver').value = vprof?.driver_name || '';
+  document.getElementById('hSupName').value = vprof?.full_name || '';
+  document.getElementById('dBus').textContent = vprof?.bus_no || '-';
+  document.getElementById('dDriver').textContent = vprof?.driver_name || '-';
+  document.getElementById('dSupervisor').textContent = vprof?.full_name || '-';
+  supSigData = vprof?.signature || '';
+  showSignatures();
+  await loadStudentsFor(id);
+  await loadAttendance();
+  renderSheet();
+}
+async function loadTerms(){
+  const { data, error } = await sb.from('terms').select('*').order('start_date', { ascending:false });
+  terms = (!error && data && data.length) ? data : [];
+  const open = terms.find(t=>t.status==='open') || terms[0];
+  if(open) curTerm = open;
+  const sel = document.getElementById('termSelect');
+  if(terms.length) sel.innerHTML = terms.map(t=>`<option value="${t.id}">الفصل ${t.semester} ${t.year_label}${t.status==='closed'?' (أرشيف)':' (الحالي)'}</option>`).join('');
+  else sel.innerHTML = `<option value="">الفصل ${curTerm.semester} ${curTerm.year_label}</option>`;
+  if(curTerm.id) sel.value = curTerm.id;
+  document.getElementById('termNote').textContent = curTerm.status==='closed' ? '📦 أرشيف' : '';
+  fillTermDefaults();
+}
+function fillTermDefaults(){
+  const open = terms.find(t=>t.status==='open') || curTerm;
+  const kind = document.getElementById('newKind').value;
+  if(kind==='sem'){
+    document.getElementById('newYear').value = open.year_label || '';
+    document.getElementById('newSem').value = (open.semester==='الأول') ? 'الثاني' : 'الأول';
+  } else {
+    document.getElementById('newYear').value = '';
+    document.getElementById('newSem').value = 'الأول';
+  }
+  document.getElementById('curTermLabel').textContent = `الفصل ${open.semester||''} ${open.year_label||''}`;
+}
+async function changeTerm(){
+  const id = document.getElementById('termSelect').value;
+  const t = terms.find(x=>String(x.id)===id);
+  if(!t) return;
+  curTerm = t;
+  populateWeeks();
+  document.getElementById('dWeek').textContent = document.getElementById('weekNum').value;
+  document.getElementById('termNote').textContent = t.status==='closed' ? '📦 أرشيف' : '';
+  updateSemesterLabel();
+  await loadAttendance();
+  renderSheet();
+}
+async function closeTerm(){
+  const msg = document.getElementById('termMsg');
+  msg.style.color = '#dc2626';
+  const open = terms.find(t=>t.status==='open');
+  if(!open || !open.id){ msg.textContent = 'شغّل كود SQL الخاص بالفصول الأول'; return; }
+  const end = document.getElementById('termEnd').value;
+  const year = document.getElementById('newYear').value.trim();
+  const sem = document.getElementById('newSem').value.trim();
+  const start = document.getElementById('newStart').value;
+  const carry = document.getElementById('carryStudents').checked;
+  if(!end || !year || !sem || !start){ msg.textContent = 'كمّل كل الخانات (آخر يوم، العام، الفصل، تاريخ البداية)'; return; }
+  if(end < open.start_date){ msg.textContent = 'آخر يوم لازم يكون بعد بداية الفصل الحالي'; return; }
+  if(start <= end){ msg.textContent = 'بداية الفصل الجديد لازم تكون بعد آخر يوم في الحالي'; return; }
+  if(!confirm(`إغلاق ${document.getElementById('curTermLabel').textContent} في ${end} وفتح "الفصل ${sem} ${year}"؟ ${carry?'الطلاب هيتنقلوا للفصل الجديد.':'الفصل الجديد هيبدأ بدون طلاب.'} الكشوف القديمة تتحفظ في الأرشيف.`)) return;
+  msg.textContent = 'جاري التنفيذ...';
+  if(!carry){
+    const { data: all } = await sb.from('students').select('*');
+    const act = (all||[]).filter(s=> s.active!==false && !(s.since && s.since > end));
+    if(act.length){
+      const rows = act.map(s=>({ student_id:s.id, supervisor_id:s.supervisor_id, from_date:s.since||null, to_date:end }));
+      const { error: he } = await sb.from('student_history').insert(rows);
+      if(he){ msg.textContent = 'تعذر أرشفة الطلاب: '+he.message; return; }
+      const { error: ue } = await sb.from('students').update({ active:false }).in('id', act.map(s=>s.id));
+      if(ue){ msg.textContent = 'تعذر إيقاف الطلاب: '+ue.message; return; }
+    }
+  }
+  const { error: ce } = await sb.from('terms').update({ end_date:end, status:'closed' }).eq('id', open.id);
+  if(ce){ msg.textContent = 'تعذر إغلاق الفصل: '+ce.message; return; }
+  const { error: ne } = await sb.from('terms').insert({ year_label:year, semester:sem, start_date:start, status:'open' });
+  if(ne){ msg.textContent = 'تم إغلاق القديم لكن تعذر فتح الجديد: '+ne.message; return; }
+  msg.style.color = '#16a34a';
+  msg.textContent = 'تم إغلاق الفصل وفتح الفصل الجديد ✓';
+  await loadTerms();
+  populateWeeks();
+  document.getElementById('dWeek').textContent = document.getElementById('weekNum').value;
+  updateSemesterLabel();
+  await loadSheetFor(viewingSupervisorId);
+}
+async function changeMyPassword(){
+  const msg = document.getElementById('pwMsg');
+  msg.style.color = '#dc2626';
+  const a = document.getElementById('pwNew').value, b = document.getElementById('pwNew2').value;
+  if(a.length < 6){ msg.textContent = 'كلمة المرور لازم 6 حروف/أرقام على الأقل'; return; }
+  if(a !== b){ msg.textContent = 'كلمتا المرور غير متطابقتين'; return; }
+  const { error } = await sb.auth.updateUser({ password: a });
+  if(error){ msg.textContent = 'تعذر التغيير: '+error.message; return; }
+  document.getElementById('pwNew').value = ''; document.getElementById('pwNew2').value = '';
+  msg.style.color = '#16a34a'; msg.textContent = 'تم تغيير كلمة المرور ✓';
+}
+async function resetSupPassword(){
+  const msg = document.getElementById('pwSupMsg');
+  msg.style.color = '#dc2626';
+  const id = document.getElementById('pwSup').value;
+  const pw = document.getElementById('pwSupNew').value;
+  if(!id){ msg.textContent = 'اختر المشرف'; return; }
+  if(pw.length < 6){ msg.textContent = 'كلمة المرور لازم 6 على الأقل'; return; }
+  if(!confirm('تعيين كلمة المرور الجديدة للمشرف المحدد؟')) return;
+  const { error } = await sb.rpc('admin_set_password', { target: id, new_password: pw });
+  if(error){ msg.textContent = 'تعذر التعيين: '+error.message; return; }
+  document.getElementById('pwSupNew').value = '';
+  msg.style.color = '#16a34a'; msg.textContent = 'تم تعيين كلمة المرور الجديدة ✓';
+}
+function datesOfWeek(n){
+  const base = new Date(curTerm.start_date); const sunday = new Date(base); sunday.setDate(base.getDate() + (n-1)*7);
+  return DAYS.map((_,i)=>{ const d=new Date(sunday); d.setDate(sunday.getDate()+i); return d.toISOString().slice(0,10); });
+}
+async function collectStudents(id){
+  const { data: allS } = await sb.from('students').select('*').eq('supervisor_id', id).order('id');
+  const cur = (allS||[]).filter(s=>s.active!==false);
+  const { data: hist } = await sb.from('student_history').select('*').eq('supervisor_id', id);
+  const rng = {};
+  const add = (sid,f,t)=>{ (rng[sid] = rng[sid] || []).push({ from: f || '0000-01-01', to: t || '9999-12-31' }); };
+  cur.forEach(s=> add(s.id, s.since, null));
+  (hist||[]).forEach(h=> add(h.student_id, h.from_date, h.to_date));
+  const curIds = new Set(cur.map(s=>s.id));
+  const pastIds = [...new Set((hist||[]).map(h=>h.student_id))].filter(x=>!curIds.has(x));
+  let past = [];
+  if(pastIds.length){ const { data } = await sb.from('students').select('*').in('id', pastIds); past = data || []; }
+  return { list: [...cur, ...past].sort((a,b)=>a.id-b.id), rng };
+}
+function bulkSheetHtml(prof, list, rng, att, dates, weekN){
+  const inR = (sid,d)=>{ const r = rng[sid]; if(!r) return true; return r.some(x=> d>=x.from && d<=x.to); };
+  const vis = list.filter(s=> dates.some(d=> inR(s.id,d)));
+  if(!vis.length) return '';
+  const today = new Date().toISOString().slice(0,10);
+  const cs = 'border:1px solid #94a3b8;padding:2px;text-align:center;line-height:1.15';
+  const ths = cs + ';background:#1e3a8a;color:#ffffff;font-weight:bold';
+  let t = `<table dir="rtl" border="1" style="border-collapse:collapse;width:100%;table-layout:fixed;font-family:Tahoma,Arial;font-size:10px;border:2px solid #1e3a8a">`;
+  t += '<colgroup><col style="width:3%"><col style="width:14%"><col style="width:9%"><col style="width:8%">';
+  dates.forEach(()=> t += '<col style="width:6.6%"><col style="width:6.6%">');
+  t += '</colgroup><tr>';
+  t += `<th rowspan="2" style="${ths}">#</th><th rowspan="2" style="${ths}">الاسم</th><th rowspan="2" style="${ths}">المرحلة</th><th rowspan="2" style="${ths}">الاشتراك</th>`;
+  dates.forEach((d,i)=> t += `<th colspan="2" style="${ths}">${DAYS[i]}<br>${d}</th>`);
+  t += '</tr><tr>';
+  dates.forEach(()=> t += `<th style="${ths}">ذهاب</th><th style="${ths}">عودة</th>`);
+  t += '</tr>';
+  vis.forEach((s,idx)=>{
+    const bg = idx%2===1 ? 'background:#f1f5f9' : '';
+    t += `<tr style="${bg}"><td style="${cs}">${idx+1}</td><td style="${cs}">${s.name}</td><td style="${cs}">${s.stage}</td><td style="${cs}">${s.subscription==='one'?'ذهاب فقط':s.subscription==='return_only'?'عودة فقط':'ذهاب وعودة'}</td>`;
+    dates.forEach(d=>{
+      if(!inR(s.id,d)){ t += `<td style="${cs}">-</td><td style="${cs}">-</td>`; return; }
+      const rec = att[s.id+'_'+d];
+      const mark = (f)=>{
+        if(!rec && d > today) return '-';
+        return (rec && rec[f]) ? '<span style="color:#16a34a;font-weight:bold">✓</span>' : '<span style="color:#dc2626;font-weight:bold">✗</span>';
+      };
+      t += `<td style="${cs}">${s.subscription==='return_only'?'-':mark('go')}</td><td style="${cs}">${s.subscription==='one'?'-':mark('return_trip')}</td>`;
+    });
+    t += '</tr>';
+  });
+  t += '</table>';
+  const school = document.getElementById('dSchool').textContent;
+  const logo = document.getElementById('logoImg').src;
+  const semester = curTerm.semester || '-', year = curTerm.year_label || '';
+  const sname = prof?.full_name || '-';
+  const sigS = prof?.signature ? `<img src="${prof.signature}" style="height:36px">` : '________';
+  const sigA = adminSigData ? `<img src="${adminSigData}" style="height:36px">` : '________';
+  return `<div style="font-family:Tahoma,Arial;direction:rtl">
+    <table style="width:100%;border:none;margin-bottom:4px;border-collapse:collapse"><tr>
+      <td style="border:none;border-bottom:3px double #1e3a8a;text-align:center;font-size:11px;line-height:1.3;color:#1e3a8a;width:33%">المملكة العربية السعودية<br>وزارة التعليم<br>مكتب التعليم الخاص<br>إدارة الخدمات المساندة</td>
+      <td style="border:none;border-bottom:3px double #1e3a8a;text-align:center;width:33%"><img src="${logo}" style="width:52px;height:52px"></td>
+      <td style="border:none;border-bottom:3px double #1e3a8a;text-align:center;font-size:13px;font-weight:bold;color:#1e3a8a;width:33%">${school}</td>
+    </tr></table>
+    <div style="text-align:center;font-weight:bold;font-size:15px;background:#1e3a8a;color:#fff;padding:4px 0;border-radius:6px;margin-bottom:5px">نموذج رصد بيانات النقل المدرسي</div>
+    <div style="text-align:center;font-size:11px;margin-bottom:5px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:4px 10px">
+      الفصل الدراسي <b style="color:#1e3a8a">${semester}</b> <b style="color:#1e3a8a">${year}</b> &nbsp;|&nbsp; تحضير الأسبوع رقم: <b style="color:#1e3a8a">${weekN}</b> &nbsp;|&nbsp; باص رقم: <b style="color:#1e3a8a">${prof?.bus_no||'-'}</b> &nbsp;|&nbsp; اسم السائق: <b style="color:#1e3a8a">${prof?.driver_name||'-'}</b> &nbsp;|&nbsp; اسم المشرف: <b style="color:#1e3a8a">${sname}</b>
+    </div>
+    ${t}
+    <table style="width:100%;margin-top:8px;font-size:11px;border:none;border-collapse:collapse;text-align:center"><tr>
+      <td style="width:50%;border:none;border-top:1px solid #cbd5e1;padding-top:4px"><b style="color:#1e3a8a">مشرف الباص</b><br><b>${sname}</b><br>${sigS}<br>التوقيع</td>
+      <td style="width:50%;border:none;border-top:1px solid #cbd5e1;padding-top:4px"><b style="color:#1e3a8a">اعتماد مشرف البنين</b><br><b>جمال محمد زين</b><br>${sigA}<br>التوقيع</td>
+    </tr></table>
+  </div>`;
+}
+function closeBulk(){
+  document.getElementById('bulkArea').style.display = 'none';
+  document.getElementById('bulkArea').innerHTML = '';
+  document.getElementById('appCard').style.display = '';
+}
+async function bulkExport(kind){
+  const msg = document.getElementById('bulkMsg');
+  msg.style.color = '#dc2626';
+  if(myRole !== 'admin'){ msg.textContent = 'للأدمن فقط'; return; }
+  const from = parseInt(document.getElementById('exFrom').value,10), to = parseInt(document.getElementById('exTo').value,10);
+  const maxW = document.getElementById('weekNum').options.length;
+  if(!(from>=1) || !(to>=from)){ msg.textContent = 'اكتب أسابيع صحيحة (من أصغر من أو يساوي إلى)'; return; }
+  if(to > maxW){ msg.textContent = 'الفصل المختار فيه '+maxW+' أسبوع بس'; return; }
+  const one = document.getElementById('exSup').value;
+  const incl = document.getElementById('exFormer').checked;
+  const sups = one ? [{ id: one }] : supList.concat(incl ? disabledList : []);
+  if(!sups.length){ msg.textContent = 'لا يوجد مشرفين'; return; }
+  msg.style.color = '#64748b'; msg.textContent = 'جاري تجهيز الكشوف...';
+  const cache = {};
+  const parts = [];
+  for(let w=from; w<=to; w++){
+    const dates = datesOfWeek(w);
+    for(const sp of sups){
+      if(!cache[sp.id]){
+        const { data: prof } = await sb.from('profiles').select('full_name,bus_no,driver_name,signature').eq('id', sp.id).single();
+        const c = await collectStudents(sp.id);
+        cache[sp.id] = { prof, ...c };
+      }
+      const c = cache[sp.id];
+      const ids = c.list.map(x=>x.id);
+      const att = {};
+      if(ids.length){
+        const { data } = await sb.from('attendance').select('*').in('student_id', ids).in('date', dates);
+        (data||[]).forEach(r=>{ att[r.student_id+'_'+r.date] = r; });
+      }
+      const h = bulkSheetHtml(c.prof, c.list, c.rng, att, dates, w);
+      if(h){ const n = c.list.length; const z = n<=16 ? 1 : Math.max(0.5, 16/n); parts.push(kind==='print' ? `<div style="zoom:${z}">${h}</div>` : h); }
+    }
+  }
+  if(!parts.length){ msg.style.color = '#dc2626'; msg.textContent = 'لا توجد كشوف (لا يوجد طلاب) في الفترة دي'; return; }
+  const html = parts.map((h,i)=>`<div style="page-break-inside:avoid;${i<parts.length-1?'page-break-after:always;':''}">${h}</div>`).join('');
+  msg.style.color = '#16a34a'; msg.textContent = 'تم تجهيز '+parts.length+' كشف ✓';
+  if(kind === 'print'){
+    const area = document.getElementById('bulkArea');
+    area.innerHTML = '<div class="no-print" style="margin-bottom:8px"><button onclick="closeBulk()">⬅ رجوع للتطبيق</button> <button onclick="window.print()">طباعة / PDF</button></div>' + html;
+    area.style.display = 'block';
+    document.getElementById('appCard').style.display = 'none';
+    window.scrollTo(0,0);
+    setTimeout(()=> window.print(), 300);
+  } else if(kind === 'word'){
+    const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>@page Section1{ size:29.7cm 21cm; mso-page-orientation:landscape; margin:1cm; } div.Section1{ page:Section1; } body{ direction:rtl }</style></head><body><div class="Section1">${html}</div></body></html>`;
+    downloadFile(doc, 'application/msword', `كشوف_مجمعة_اسبوع_${from}-${to}.doc`);
+  } else {
+    const doc = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body>${html}</body></html>`;
+    downloadFile(doc, 'application/vnd.ms-excel', `كشوف_مجمعة_اسبوع_${from}-${to}.xls`);
+  }
+}
+function supLabel(id){
+  const o = document.querySelector(`#supSelect option[value="${id}"]`) || document.querySelector(`#disabledSelect option[value="${id}"]`);
+  return o ? o.textContent : '';
+}
+function dayBefore(ds){ const d = new Date(ds+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()-1); return d.toISOString().slice(0,10); }
+function inRange(sid, date){ const r = ranges[sid]; if(!r) return true; return r.some(x=> date>=x.from && date<=x.to); }
+function visStudents(){ const dates = weekDates(); return students.filter(s=> dates.some(d=> inRange(s.id,d))); }
+async function loadStudentsFor(id){
+  const { data: allS } = await sb.from('students').select('*').eq('supervisor_id', id).order('id');
+  const cur = (allS||[]).filter(s=>s.active!==false);
+  const { data: hist } = await sb.from('student_history').select('*').eq('supervisor_id', id);
+  ranges = {};
+  const add = (sid,f,t)=>{ (ranges[sid] = ranges[sid] || []).push({ from: f || '0000-01-01', to: t || '9999-12-31' }); };
+  (cur||[]).forEach(s=> add(s.id, s.since, null));
+  (hist||[]).forEach(h=> add(h.student_id, h.from_date, h.to_date));
+  const curIds = new Set((cur||[]).map(s=>s.id));
+  const pastIds = [...new Set((hist||[]).map(h=>h.student_id))].filter(x=>!curIds.has(x));
+  let past = [];
+  if(pastIds.length){
+    const { data } = await sb.from('students').select('*').in('id', pastIds);
+    past = (data||[]).map(s=>({ ...s, _past:true }));
+  }
+  students = [...(cur||[]), ...past].sort((a,b)=>a.id-b.id);
+}
+function toggleBox(id, head){
+  const b = document.getElementById(id);
+  const hidden = b.classList.toggle('hidden');
+  head.querySelector('.chev').textContent = hidden ? '▼' : '▲';
+}
+async function viewDisabled(){
+  const id = document.getElementById('disabledSelect').value;
+  if(!id){ alert('اختر مشرفاً من القائمة أولاً'); return; }
+  await loadSheetFor(id);
+  document.getElementById('sheetWrap').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function startMove(id){
+  const s = students.find(x=>x.id===id); if(!s) return;
+  moveStudentId = id;
+  document.getElementById('moveName').textContent = s.name;
+  document.getElementById('moveTo').innerHTML = '<option value="">-- اختر --</option>' + supList.filter(x=>x.id!==s.supervisor_id).map(x=>`<option value="${x.id}">${x.full_name}${x.bus_no?' — باص '+x.bus_no:''}</option>`).join('');
+  document.getElementById('moveDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('moveMsg').textContent = '';
+  const panel = document.getElementById('movePanel');
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({behavior:'smooth', block:'center'});
+}
+function cancelMove(){ moveStudentId = null; document.getElementById('movePanel').classList.add('hidden'); }
+async function doMove(){
+  const msg = document.getElementById('moveMsg');
+  const to = document.getElementById('moveTo').value;
+  const date = document.getElementById('moveDate').value;
+  const s = students.find(x=>x.id===moveStudentId);
+  if(!s){ return; }
+  if(!to || !date){ msg.textContent = 'اختر المشرف الجديد والتاريخ'; return; }
+  if(s.since && date <= s.since){ msg.textContent = 'تاريخ النقل لازم يكون بعد تاريخ دخول الطالب لهذا الباص ('+s.since+')'; return; }
+  const { data: h, error: e1 } = await sb.from('student_history').insert({ student_id:s.id, supervisor_id:s.supervisor_id, from_date:s.since||null, to_date:dayBefore(date) }).select().single();
+  if(e1){ msg.textContent = 'تعذر تسجيل تاريخ النقل: '+e1.message; return; }
+  const { error: e2 } = await sb.from('students').update({ supervisor_id:to, since:date }).eq('id', s.id);
+  if(e2){ await sb.from('student_history').delete().eq('id', h.id); msg.textContent = 'تعذر نقل الطالب: '+e2.message; return; }
+  cancelMove();
+  await loadSheetFor(viewingSupervisorId);
+}
+async function replaceSupervisor(){
+  const msg = document.getElementById('repMsg');
+  msg.style.color = '#dc2626';
+  const oldId = document.getElementById('repOld').value;
+  const name = document.getElementById('repName').value.trim();
+  const email = document.getElementById('repEmail').value.trim();
+  const pass = document.getElementById('repPass').value;
+  const date = document.getElementById('repDate').value;
+  if(!oldId || !name || !email || !pass || !date){ msg.textContent = 'كمّل كل الخانات (المشرف الحالي، الاسم، البريد، كلمة المرور، التاريخ)'; return; }
+  const oldP = supList.find(x=>x.id===oldId);
+  if(!confirm(`تعيين "${name}" مكان "${oldP?oldP.full_name:''}" من تاريخ ${date}؟ الكشوف القبل التاريخ ده تفضل بإسم وتوقيع المشرف القديم.`)) return;
+  msg.textContent = 'جاري التنفيذ...';
+  const tmp = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const { data, error } = await tmp.auth.signUp({ email, password: pass });
+  if(error){ msg.textContent = error.message; return; }
+  const newId = data.user.id;
+  const { error: pe } = await sb.from('profiles').insert({ id:newId, full_name:name, role:'supervisor', bus_no: oldP?.bus_no || null, driver_name: oldP?.driver_name || null });
+  if(pe){ msg.textContent = 'تعذر حفظ المشرف الجديد: '+pe.message; return; }
+  const { data: sts } = await sb.from('students').select('*').eq('supervisor_id', oldId);
+  if((sts||[]).length){
+    const rows = sts.map(s=>({ student_id:s.id, supervisor_id:oldId, from_date:s.since||null, to_date:dayBefore(date) }));
+    const { error: he } = await sb.from('student_history').insert(rows);
+    if(he){ msg.textContent = 'تعذر تسجيل الطلاب في السجل: '+he.message; return; }
+    const { error: ue } = await sb.from('students').update({ supervisor_id:newId, since:date }).eq('supervisor_id', oldId);
+    if(ue){ msg.textContent = 'تعذر نقل الطلاب للمشرف الجديد: '+ue.message; return; }
+  }
+  const { error: de } = await sb.from('profiles').update({ role:'disabled' }).eq('id', oldId);
+  if(de){ msg.textContent = 'تم النقل لكن تعذر إيقاف المشرف القديم: '+de.message; return; }
+  ['repName','repEmail','repPass'].forEach(i=> document.getElementById(i).value='');
+  msg.style.color = '#16a34a';
+  msg.textContent = 'تم تعيين المشرف الجديد ✓ (المشرف القديم في قائمة "مشرفون سابقون")';
+  await loadSupervisorList();
+  document.getElementById('supSelect').value = newId;
+  await loadSheetFor(newId);
+}
+async function saveSupField(col, val){
+  await sb.from('profiles').update({ [col]: val }).eq('id', viewingSupervisorId);
+  const map = { bus_no:'dBus', driver_name:'dDriver' };
+  document.getElementById(map[col]).textContent = val || '-';
+}
+async function saveAllHeader(){
+  const msg = document.getElementById('headerSaveMsg');
+  msg.style.color = '#dc2626';
+  if(myRole==='admin'){
+    const { error } = await sb.from('settings').upsert({
+      id:1,
+      school_name: document.getElementById('hSchool').value,
+      s1_from: parseInt(document.getElementById('s1From').value||'1',10),
+      s1_to: parseInt(document.getElementById('s1To').value||'15',10),
+      s2_from: parseInt(document.getElementById('s2From').value||'16',10),
+      s2_to: parseInt(document.getElementById('s2To').value||'30',10)
+    }, { onConflict:'id' });
+    if(error){ msg.textContent = 'تعذر حفظ بيانات المدرسة: '+error.message; return; }
+    document.getElementById('dSchool').textContent = document.getElementById('hSchool').value || 'اسم المدرسة';
+    updateSemesterLabel();
+  }
+  const busVal = document.getElementById('hBus').value;
+  const driverVal = document.getElementById('hDriver').value;
+  const supNameVal = document.getElementById('hSupName').value;
+  if(!document.getElementById('hBus').disabled){
+    const { error } = await sb.from('profiles').update({ bus_no: busVal, driver_name: driverVal, full_name: supNameVal }).eq('id', viewingSupervisorId);
+    if(error){ msg.textContent = 'تعذر حفظ بيانات الباص/المشرف: '+error.message; return; }
+    document.getElementById('dBus').textContent = busVal || '-';
+    document.getElementById('dDriver').textContent = driverVal || '-';
+    document.getElementById('dSupervisor').textContent = supNameVal || '-';
+    if(viewingSupervisorId === me.id) document.getElementById('userName').textContent = supNameVal || '';
+    showSignatures();
+  }
+  msg.style.color = '#16a34a';
+  msg.textContent = 'تم الحفظ ✓';
+  setTimeout(()=> msg.textContent = '', 2000);
+}
+async function saveStudent(){
+  const msg = document.getElementById('studentMsg');
+  msg.textContent = '';
+  const name=document.getElementById('stName').value.trim();
+  if(!name){ msg.textContent = 'اكتب اسم الطالب أولاً'; return; }
+  const stage=document.getElementById('stStage').value;
+  const sub=document.getElementById('stSub').value;
+  if(editStudentId){
+    const { error } = await sb.from('students').update({ name, stage, subscription: sub }).eq('id', editStudentId);
+    if(error){ msg.textContent = 'تعذر حفظ التعديل: '+error.message; return; }
+    cancelEditStudent();
+  } else {
+    if(myRole==='admin') return;
+    const { error } = await sb.from('students').insert({ supervisor_id: viewingSupervisorId, name, stage, subscription: sub, since: document.getElementById('stSince').value || new Date().toISOString().slice(0,10) });
+    if(error){ msg.textContent = 'تعذر إضافة الطالب: '+error.message; return; }
+    document.getElementById('stName').value='';
+  }
+  await loadSheetFor(viewingSupervisorId);
+}
+function editStudent(id){
+  const s = students.find(x=>x.id===id);
+  if(!s) return;
+  editStudentId = id;
+  document.getElementById('studentPanel').classList.remove('hidden');
+  document.getElementById('stName').value = s.name;
+  document.getElementById('stStage').value = s.stage;
+  document.getElementById('stSub').value = s.subscription;
+  document.getElementById('studentSaveBtn').textContent = 'حفظ التعديل';
+  document.getElementById('cancelEditBtn').classList.remove('hidden');
+  document.getElementById('studentMsg').textContent = '';
+  document.getElementById('stName').scrollIntoView({behavior:'smooth', block:'center'});
+  document.getElementById('stName').focus();
+}
+function cancelEditStudent(){
+  editStudentId = null;
+  document.getElementById('stName').value='';
+  document.getElementById('stStage').selectedIndex = 0;
+  document.getElementById('stSub').value = 'round';
+  document.getElementById('studentSaveBtn').textContent = 'إضافة';
+  document.getElementById('cancelEditBtn').classList.add('hidden');
+  document.getElementById('studentMsg').textContent = '';
+  if(myRole==='admin') document.getElementById('studentPanel').classList.add('hidden');
+}
+function weekDates(){
+  const n = parseInt(document.getElementById('weekNum').value || '1', 10);
+  const base = new Date(curTerm.start_date); const sunday = new Date(base); sunday.setDate(base.getDate() + (n-1)*7);
+  return DAYS.map((_,i)=>{ const d=new Date(sunday); d.setDate(sunday.getDate()+i); return d.toISOString().slice(0,10); });
+}
+async function loadAttendance(){
+  attMap = {};
+  const dates = weekDates();
+  const ids = students.map(s=>s.id);
+  if(!ids.length) return;
+  const { data } = await sb.from('attendance').select('*').in('student_id', ids).in('date', dates);
+  (data||[]).forEach(r=>{ attMap[r.student_id+'_'+r.date] = r; });
+}
+async function markAllPresent(date){
+  if(!confirm('تحضير كل الطلاب في هذا اليوم؟ هيتم تعديل أي غياب مسجل بالفعل.')) return;
+  const jobs = [];
+  students.forEach(s=>{
+    if(s._past || !inRange(s.id,date)) return;
+    if(s.subscription!=='return_only') jobs.push(setAtt(s.id, date, 'go', 'present'));
+    if(s.subscription!=='one') jobs.push(setAtt(s.id, date, 'return_trip', 'present'));
+  });
+  await Promise.all(jobs);
+  renderSheet();
+}
+function attCell(studentId, date, field, rec, hasRecord, future){
+  const val = rec ? rec[field] : undefined;
+  if(!hasRecord && future){
+    return `<td><select class="no-print" onchange="setAtt(${studentId},'${date}','${field}',this.value)"><option value="none" selected>-</option><option value="absent">غائب</option><option value="present">حاضر</option></select><span class="print-only">-</span></td>`;
+  }
+  return `<td><select class="no-print" onchange="setAtt(${studentId},'${date}','${field}',this.value)"><option value="absent"${!val?' selected':''}>غائب</option><option value="present"${val?' selected':''}>حاضر</option></select><span class="print-only ${val?'mark-yes':'mark-no'}">${val?'✓':'✗'}</span></td>`;
+}
+function renderSheet(){
+  if(!visStudents().length){ document.getElementById('sheetWrap').innerHTML = '<p>لا يوجد طلاب في هذا الأسبوع.</p>'; return; }
+  const dates = weekDates();
+  const today = new Date().toISOString().slice(0,10);
+  let h = '<table id="attTable"><tr><th>#</th><th>الاسم</th><th>المرحلة</th><th>الاشتراك</th>';
+  dates.forEach((d,i)=> h += `<th colspan="2"${d===today?' style="background:#b45309"':''}>${DAYS[i]}<br>${d}${d===today?'<br><span class="no-print" style="font-size:10px">(اليوم)</span>':''}</th>`);
+  h += '<th class="no-print"></th></tr><tr><th></th><th></th><th></th><th></th>';
+  dates.forEach(d=> h += `<th${d===today?' style="background:#b45309"':''}>ذهاب</th><th${d===today?' style="background:#b45309"':''}>عودة</th>`);
+  h += '<th class="no-print"></th></tr><tr class="no-print"><th></th><th></th><th></th><th></th>';
+  dates.forEach(d=> h += `<th colspan="2" style="padding:2px"><button class="secondary" style="font-size:11px;padding:3px 6px;margin:0" onclick="markAllPresent('${d}')">تحضير الكل</button></th>`);
+  h += '<th></th></tr>';
+  visStudents().forEach((s,idx)=>{
+    h += `<tr><td>${idx+1}</td><td>${s.name}</td><td>${s.stage}</td><td>${s.subscription==='one'?'ذهاب فقط':s.subscription==='return_only'?'عودة فقط':'ذهاب وعودة'}</td>`;
+    dates.forEach(d=>{
+      const rec = attMap[s.id+'_'+d];
+      const hasRecord = rec !== undefined;
+      const future = d > today;
+      if(!inRange(s.id,d)){ h += '<td>-</td><td>-</td>'; return; }
+      if(s.subscription==='return_only'){ h += `<td>-</td>`; }
+      else { h += attCell(s.id, d, 'go', rec, hasRecord, future); }
+      if(s.subscription==='one'){ h += `<td>-</td>`; }
+      else { h += attCell(s.id, d, 'return_trip', rec, hasRecord, future); }
+    });
+    {
+      let act;
+      if(s._past) act = '<span style="font-size:11px;color:#64748b">'+(s.active===false?'مؤرشف':'منقول')+'</span>';
+      else {
+        act = `<button class="secondary" onclick="editStudent(${s.id})">تعديل</button> <button class="danger" onclick="deleteStudent(${s.id})">حذف</button>`;
+        if(myRole==='admin') act += ` <button onclick="startMove(${s.id})">نقل</button>`;
+      }
+      h += `<td class="no-print">${act}</td>`;
+    }
+    h += '</tr>';
+  });
+  h += '</table>';
+  document.getElementById('sheetWrap').innerHTML = h;
+}
+async function setAtt(studentId, date, field, val){
+  if(val === 'none') return;
+  const key = studentId+'_'+date;
+  const cur = attMap[key] || { student_id: studentId, date, go:false, return_trip:false };
+  const prevVal = cur[field];
+  cur[field] = (val === 'present');
+  attMap[key] = cur;
+  const { id: _omit, ...payload } = cur;
+  const { error } = await sb.from('attendance').upsert(payload, { onConflict:'student_id,date' });
+  if(error){ cur[field] = prevVal; alert('تعذر حفظ الحضور: '+error.message); renderSheet(); }
+}
+async function deleteStudent(id){
+  if(!confirm('تأكيد حذف الطالب؟')) return;
+  const { error: e1 } = await sb.from('attendance').delete().eq('student_id', id);
+  if(e1){ alert('تعذر حذف حضور الطالب: '+e1.message); return; }
+  const { error: e2 } = await sb.from('students').delete().eq('id', id);
+  if(e2){ alert('تعذر حذف الطالب: '+e2.message); return; }
+  if(editStudentId === id) cancelEditStudent();
+  await loadSheetFor(viewingSupervisorId);
+}
+
+const DEFAULT_LOGO = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23eef2ff' stroke='%231e3a8a' stroke-width='3'/><text x='50' y='45' font-size='11' text-anchor='middle' fill='%231e3a8a'>وزارة</text><text x='50' y='62' font-size='11' text-anchor='middle' fill='%231e3a8a'>التعليم</text></svg>`);
+async function loadSettings(){
+  const { data: st } = await sb.from('settings').select('*').eq('id',1).single();
+  document.getElementById('hSchool').value = st?.school_name || '';
+  document.getElementById('logoImg').src = st?.logo_url || DEFAULT_LOGO;
+  document.getElementById('s1From').value = st?.s1_from ?? 1;
+  document.getElementById('s1To').value = st?.s1_to ?? 15;
+  document.getElementById('s2From').value = st?.s2_from ?? 16;
+  document.getElementById('s2To').value = st?.s2_to ?? 30;
+  document.getElementById('dSchool').textContent = st?.school_name || 'اسم المدرسة';
+  adminSigData = st?.admin_signature || '';
+  showSignatures();
+  updateSemesterLabel();
+}
+async function saveHeader(){
+  await sb.from('settings').upsert({ id:1, school_name: document.getElementById('hSchool').value }, { onConflict:'id' });
+  document.getElementById('dSchool').textContent = document.getElementById('hSchool').value || 'اسم المدرسة';
+}
+async function saveSemesterRanges(){
+  await sb.from('settings').upsert({
+    id:1,
+    s1_from: parseInt(document.getElementById('s1From').value||'1',10),
+    s1_to: parseInt(document.getElementById('s1To').value||'15',10),
+    s2_from: parseInt(document.getElementById('s2From').value||'16',10),
+    s2_to: parseInt(document.getElementById('s2To').value||'30',10)
+  }, { onConflict:'id' });
+  updateSemesterLabel();
+}
+function updateSemesterLabel(){
+  document.getElementById('dSemester').textContent = curTerm.semester || '-';
+  document.getElementById('dYear').textContent = curTerm.year_label || '';
+}
+async function uploadLogo(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async ()=>{
+    document.getElementById('logoImg').src = reader.result;
+    const { error } = await sb.from('settings').upsert({ id:1, logo_url: reader.result }, { onConflict:'id' });
+    if(error){ document.getElementById('headerSaveMsg').style.color='#dc2626'; document.getElementById('headerSaveMsg').textContent = 'تعذر حفظ الشعار: '+error.message; }
+  };
+  reader.readAsDataURL(file);
+}
+
+function buildExportTable(){
+  const dates = weekDates();
+  const cellStyle = 'border:1px solid #94a3b8;padding:5px;text-align:center';
+  const thStyle = cellStyle + ';background:#1e3a8a;color:#ffffff;font-weight:bold';
+  let h = `<table dir="rtl" style="border-collapse:collapse;width:100%;table-layout:fixed;font-family:Tahoma,Arial;font-size:12px;border:2px solid #1e3a8a" border="1">`;
+  h += '<colgroup><col style="width:3%"><col style="width:14%"><col style="width:9%"><col style="width:8%">';
+  dates.forEach(()=> h += '<col style="width:6.6%"><col style="width:6.6%">');
+  h += '</colgroup>';
+  h += '<tr>';
+  h += `<th rowspan="2" style="${thStyle}">#</th><th rowspan="2" style="${thStyle}">الاسم</th><th rowspan="2" style="${thStyle}">المرحلة</th><th rowspan="2" style="${thStyle}">الاشتراك</th>`;
+  dates.forEach((d,i)=> h += `<th colspan="2" style="${thStyle}">${DAYS[i]}<br>${d}</th>`);
+  h += '</tr><tr>';
+  dates.forEach(()=> h += `<th style="${thStyle}">ذهاب</th><th style="${thStyle}">عودة</th>`);
+  h += '</tr>';
+  const today = new Date().toISOString().slice(0,10);
+  visStudents().forEach((s,idx)=>{
+    const rowBg = idx%2===1 ? 'background:#f1f5f9' : '';
+    h += `<tr style="${rowBg}"><td style="${cellStyle}">${idx+1}</td><td style="${cellStyle}">${s.name}</td><td style="${cellStyle}">${s.stage}</td><td style="${cellStyle}">${s.subscription==='one'?'ذهاب فقط':s.subscription==='return_only'?'عودة فقط':'ذهاب وعودة'}</td>`;
+    dates.forEach(d=>{
+      const rec = attMap[s.id+'_'+d];
+      const hasRecord = rec !== undefined;
+      const future = d > today;
+      const mark = (field)=>{
+        if(!hasRecord && future) return '-';
+        const v = rec ? rec[field] : undefined;
+        return v ? '<span style="color:#16a34a;font-weight:bold">✓</span>' : '<span style="color:#dc2626;font-weight:bold">✗</span>';
+      };
+      if(!inRange(s.id,d)){ h += `<td style="${cellStyle}">-</td><td style="${cellStyle}">-</td>`; return; }
+      const goText = s.subscription==='return_only' ? '-' : mark('go');
+      const retText = s.subscription==='one' ? '-' : mark('return_trip');
+      h += `<td style="${cellStyle}">${goText}</td><td style="${cellStyle}">${retText}</td>`;
+    });
+    h += '</tr>';
+  });
+  h += '</table>';
+  return h;
+}
+function buildExportBody(){
+  const school = document.getElementById('dSchool').textContent;
+  const logo = document.getElementById('logoImg').src;
+  const semester = document.getElementById('dSemester').textContent;
+  const week = document.getElementById('dWeek').textContent;
+  const bus = document.getElementById('dBus').textContent;
+  const driver = document.getElementById('dDriver').textContent;
+  const supervisor = document.getElementById('dSupervisor').textContent;
+  const supSigHtml = supSigData ? `<img src="${supSigData}" style="height:55px">` : '________';
+  const adminSigHtml = adminSigData ? `<img src="${adminSigData}" style="height:55px">` : '________';
+  return `<div style="font-family:Tahoma,Arial;direction:rtl">
+    <table style="width:100%;border:none;margin-bottom:6px;border-bottom:3px double #1e3a8a;padding-bottom:8px"><tr>
+      <td style="text-align:center;font-size:12.5px;color:#1e3a8a;width:33%">المملكة العربية السعودية<br>وزارة التعليم<br>مكتب التعليم الخاص<br>إدارة الخدمات المساندة</td>
+      <td style="text-align:center;width:33%"><img src="${logo}" style="width:82px;height:82px"></td>
+      <td style="text-align:center;font-size:14px;font-weight:bold;color:#1e3a8a;width:33%">${school}</td>
+    </tr></table>
+    <div style="text-align:center;font-weight:bold;font-size:19px;letter-spacing:.5px;background:#1e3a8a;color:#fff;padding:8px 0;border-radius:6px;margin-bottom:10px">نموذج رصد بيانات النقل المدرسي</div>
+    <div style="text-align:center;font-size:13px;margin-bottom:12px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:8px 14px">
+      الفصل الدراسي <b style="color:#1e3a8a">${semester}</b> <b style="color:#1e3a8a">${document.getElementById('dYear').textContent}</b> &nbsp;&nbsp;|&nbsp;&nbsp; تحضير الأسبوع رقم: <b style="color:#1e3a8a">${week}</b> &nbsp;&nbsp;|&nbsp;&nbsp; باص رقم: <b style="color:#1e3a8a">${bus}</b> &nbsp;&nbsp;|&nbsp;&nbsp; اسم السائق: <b style="color:#1e3a8a">${driver}</b> &nbsp;&nbsp;|&nbsp;&nbsp; اسم المشرف: <b style="color:#1e3a8a">${supervisor}</b>
+    </div>
+    ${buildExportTable()}
+    <table style="width:100%;margin-top:22px;font-size:13.5px;border-top:1px solid #cbd5e1;text-align:center"><tr>
+      <td style="width:50%"><b style="color:#1e3a8a">مشرف الباص</b><br><b>${supervisor && supervisor!=='-' ? supervisor : '____________'}</b><br>${supSigHtml}<br>التوقيع</td>
+      <td style="width:50%"><b style="color:#1e3a8a">اعتماد مشرف البنين</b><br><b>جمال محمد زين</b><br>${adminSigHtml}<br>التوقيع</td>
+    </tr></table>
+    <div style="text-align:center;font-size:11px;color:#64748b;margin-top:8px">تاريخ الطباعة: ${new Date().toLocaleDateString('ar-SA-u-ca-gregory')} - ${new Date().toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'})}</div>
+  </div>`;
+}
+function downloadFile(content, mime, filename){
+  const blob = new Blob(['\ufeff', content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function exportWord(){
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8">
+  <style>
+   @page Section1{ size:29.7cm 21cm; mso-page-orientation:landscape; margin:1cm; }
+   div.Section1{ page:Section1; }
+   body{ direction:rtl }
+  </style>
+  </head><body><div class="Section1">${buildExportBody()}</div></body></html>`;
+  downloadFile(html, 'application/msword', `كشف_أسبوع_${document.getElementById('weekNum').value}.doc`);
+}
+function exportExcel(){
+  const html = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8">
+  <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>كشف</x:Name><x:WorksheetOptions><x:DisplayRightToLeft/><x:PageSetup><x:Layout x:Orientation="Landscape"/><x:PageMargins x:Bottom="0.5" x:Left="0.3" x:Right="0.3" x:Top="0.5" x:Header="0.2" x:Footer="0.2"/></x:PageSetup><x:FitToPage/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>${buildExportBody()}</body></html>`;
+  downloadFile(html, 'application/vnd.ms-excel', `كشف_أسبوع_${document.getElementById('weekNum').value}.xls`);
+}
+
+// resume session on reload
+sb.auth.getSession().then(({data})=>{ if(data.session) afterLogin(data.session.user); });
+</script>
+</body>
+</html>
